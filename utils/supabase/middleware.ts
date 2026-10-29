@@ -39,7 +39,7 @@ export const updateSession = async (request: NextRequest) => {
     // This will refresh session if expired - required for Server Components
     // https://supabase.com/docs/guides/auth/server-side/nextjs
     const {data:{user}} = await supabase.auth.getUser();
-    const hasAccess = typeof SUPABASE_ADMIN_CONFIG.auth?.isAdminCallback == 'function' ? SUPABASE_ADMIN_CONFIG.auth?.isAdminCallback(user, supabase) : false;
+    const hasAccess = typeof SUPABASE_ADMIN_CONFIG.auth?.isAdminCallback === 'function' ? await SUPABASE_ADMIN_CONFIG.auth.isAdminCallback(user, supabase) : false;
     if(!user || (!hasAccess && user)){
       await supabase.auth.signOut();
     }

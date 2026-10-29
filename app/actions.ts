@@ -53,7 +53,7 @@ export const signInAction = async (formData: FormData) => {
   if (error) {
     return encodedRedirect("error", "/sign-in", error.message);
   }
-  const isAdmin = typeof SUPABASE_ADMIN_CONFIG.auth?.isAdminCallback == 'function' ? SUPABASE_ADMIN_CONFIG.auth?.isAdminCallback(data.user, supabase) : false;
+  const isAdmin = typeof SUPABASE_ADMIN_CONFIG.auth?.isAdminCallback === 'function' ? await SUPABASE_ADMIN_CONFIG.auth.isAdminCallback(data.user, supabase) : false;
   if (!isAdmin) {
     await supabase.auth.signOut();
     return encodedRedirect("error", "/sign-in", "Invalid login credentials");
@@ -141,21 +141,29 @@ export const signOutAction = async () => {
 
 export async function fetchTablesFromSupabase() {
   const client = databaseClient();
-  await client.connect();
-  const res = await client.query(`
-      SELECT table_name 
-      FROM information_schema.tables 
-      WHERE table_schema = 'public';
+  try {
+    await client.connect();
+    const res = await client.query(`
+      SELECT table_name
+      FROM information_schema.tables
+      WHERE table_schema = 'public'
+      ORDER BY table_name;
     `);
-
-  await client.end();
-  return res.rows;
+    return res.rows;
+  } finally {
+    await client.end().catch(() => undefined);
+  }
 }
 
 export async function fetchColumnsForTable(tableName: string) {
+  if (!/^[a-zA-Z_][a-zA-Z0-9_]*$/.test(tableName)) {
+    throw new Error("Invalid table name");
+  }
+
   const client = databaseClient();
-  await client.connect();
-  const res = await client.query(`
+  try {
+    await client.connect();
+    const res = await client.query(`
      WITH enum_values AS (
         SELECT t.typname AS enum_type, e.enumlabel AS enum_value
         FROM pg_type t
@@ -174,13 +182,15 @@ export async function fetchColumnsForTable(tableName: string) {
         FROM information_schema.columns c
         LEFT JOIN enum_values e ON c.udt_name = e.enum_type
         WHERE c.table_schema = 'public'
-        AND c.table_name = '${tableName}'
+        AND c.table_name = $1
         GROUP BY c.is_identity, c.column_name, c.ordinal_position, c.column_default, c.is_nullable, c.data_type, c.udt_name
       )
       SELECT * FROM columns_with_enum;
-    `);
-  await client.end();
-  return res.rows as Column[];
+    `, [tableName]);
+    return res.rows as Column[];
+  } finally {
+    await client.end().catch(() => undefined);
+  }
 }
 
 export async function saveDataToSupabase(tableName: string, data: FormData) {
