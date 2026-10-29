@@ -1,0 +1,6 @@
+name = "dladminpanel"
+compatibility_date = "2026-09-04"
+
+[vars]
+NEXT_PUBLIC_SUPABASE_URL = "https://server.docedleite.com.br"
+NEXT_PUBLIC_SUPABASE_ANON_KEY = "via-proxy"
