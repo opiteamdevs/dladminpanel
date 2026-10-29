@@ -2,6 +2,9 @@ import { createClient } from "@/utils/supabase/server";
 import { redirect } from "next/navigation";
 import { fetchTablesFromSupabase } from "../actions";
 
+// 🚀 IMPEDE QUE O NEXT.JS TENTE EXECUTAR ISSO NO BUILD ESTÁTICO:
+export const dynamic = 'force-dynamic';
+
 export default async function Dashboard() {
   const supabase = await createClient();
   const tables = await fetchTablesFromSupabase();
